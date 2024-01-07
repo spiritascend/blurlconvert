@@ -180,8 +180,6 @@ func HandleDownloadTrack(mediatype string, id string, numberofsegments float64, 
 		err = os.Mkdir("downloads", 0755)
 		if err != nil {
 			fmt.Println(err)
-		} else {
-			fmt.Println("Directory created successfully:", "downloads")
 		}
 	}
 
@@ -236,7 +234,7 @@ func HandleDownloadTrack(mediatype string, id string, numberofsegments float64, 
 
 			if resp.StatusCode == 404 && idx == int(numberofsegments) {
 				numberofsegments -= 1
-				fmt.Println("Segment unfortunately wasn't found! No worries it's not your fault! It's my fault for calculating the amount of segments incorrectly! Time to decrypt! ")
+				fmt.Println("Hmm that's odd.... let's try to finish the decryption process though")
 				return
 			}
 
