@@ -89,7 +89,7 @@ func main() {
 		fmt.Printf("===================================================================================\n")
 
 		for _, adaptation := range mpddata.Period.AdaptationSet {
-			err := HandleDownloadTrackV2(adaptation.ContentType, fmt.Sprintf("master_%s", adaptation.ContentType), numberOfSegments, getBaseURL(mediaurl), strings.ReplaceAll(adaptation.Representation[0].SegmentTemplate.Initialization, "$RepresentationID$", adaptation.Representation[0].ID), adaptation.Representation[0].ID, hex.EncodeToString(key))
+			err := HandleDownloadTrack(adaptation.ContentType, fmt.Sprintf("master_%s", adaptation.ContentType), numberOfSegments, getBaseURL(mediaurl), strings.ReplaceAll(adaptation.Representation[0].SegmentTemplate.Initialization, "$RepresentationID$", adaptation.Representation[0].ID), adaptation.Representation[0].ID, hex.EncodeToString(key))
 
 			if err != nil {
 				fmt.Println("Error Downloading Track", err)
