@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+#blacklisted files
+*.blurl
+*.mp4
+*.mp3
+*.json

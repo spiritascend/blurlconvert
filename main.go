@@ -12,18 +12,30 @@ import (
 )
 
 func main() {
-	if !strings.HasSuffix(os.Args[1], ".blurl") {
-		fmt.Println("input must be a blurl")
+	if !strings.HasSuffix(os.Args[1], ".blurl") && !strings.HasSuffix(os.Args[1], ".json") {
+		fmt.Println("input must be a blurl or a json")
 		return
 	}
 
-	blurl, err := parseBLURL(string(os.Args[1]))
+	var blurl BLURL
 
-	if err != nil {
-		fmt.Println(err)
+	if strings.HasSuffix(os.Args[1], ".blurl") {
+		err := parseBLURL(&blurl, string(os.Args[1]))
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	} else {
+		err := parseBLURLFromJSON(&blurl, string(os.Args[1]))
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
 
-	mediaurl := GetMediaURL(blurl)
+	mediaurl := GetMediaURL(&blurl)
 
 	decodedEV, err := base64.StdEncoding.DecodeString(blurl.Ev)
 	if err != nil {
@@ -77,7 +89,7 @@ func main() {
 		fmt.Printf("===================================================================================\n")
 
 		for _, adaptation := range mpddata.Period.AdaptationSet {
-			err := HandleDownloadTrack(fmt.Sprintf("master_%s", adaptation.ContentType), numberOfSegments, getBaseURL(mediaurl), strings.ReplaceAll(adaptation.Representation[0].SegmentTemplate.Initialization, "$RepresentationID$", adaptation.Representation[0].ID), adaptation.Representation[0].ID, hex.EncodeToString(key))
+			err := HandleDownloadTrackV2(adaptation.ContentType, fmt.Sprintf("master_%s", adaptation.ContentType), numberOfSegments, getBaseURL(mediaurl), strings.ReplaceAll(adaptation.Representation[0].SegmentTemplate.Initialization, "$RepresentationID$", adaptation.Representation[0].ID), adaptation.Representation[0].ID, hex.EncodeToString(key))
 
 			if err != nil {
 				fmt.Println("Error Downloading Track", err)
@@ -87,8 +99,13 @@ func main() {
 
 		/*Scuffed but works */
 		if len(mpddata.Period.AdaptationSet) == 2 {
-			Merge("master_video.mp4", "master_audio.mp4")
+			Merge("master_video.mp4", "master_audio.mp4", EncodeToBase62(mpddata.Period.AdaptationSet[0].ContentProtection[0].DefaultKID)[:8])
+		} else if len(mpddata.Period.AdaptationSet) == 1 {
+			os.Rename(fmt.Sprintf("master_%s.mp4", mpddata.Period.AdaptationSet[0].ContentType), fmt.Sprintf("%s_master.mp4", EncodeToBase62(mpddata.Period.AdaptationSet[0].ContentProtection[0].DefaultKID)[:8]))
 		}
+
+		/* It deletes all the files in the directory but not the directory because some how it's being used... idk couldn't figure this out, but it's not a huge issue */
+		os.RemoveAll("./downloads")
 
 	} else {
 		fmt.Println("Invalid number of track segments! exiting.")

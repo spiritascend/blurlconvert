@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 )
@@ -66,28 +67,42 @@ func GetMediaURL(blurl *BLURL) string {
 	return ""
 }
 
-func parseBLURL(filepath string) (*BLURL, error) {
+func parseBLURLFromJSON(inblurl *BLURL, filepath string) error {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	defer file.Close()
+
+	err = json.NewDecoder(file).Decode(&inblurl)
+	if err != nil {
+		log.Fatalf("Error decoding JSON: %v", err)
+	}
+
+	return nil
+}
+
+func parseBLURL(inblurl *BLURL, filepath string) error {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return err
 	}
 	defer file.Close()
 
 	_, err = file.Seek(8, 0)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	decompressedData, err := decompressData(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var jsonblurl BLURL
-	err = json.Unmarshal(decompressedData, &jsonblurl)
+	err = json.Unmarshal(decompressedData, &inblurl)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &jsonblurl, nil
+	return nil
 }

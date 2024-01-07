@@ -1,5 +1,5 @@
 # blurlconvert
-Reads Decrypts and Converts blurl files.
+Reads Decrypts and Converts blurl files & blurl json files.
 
 # Requirements
 - ffmpeg in path
