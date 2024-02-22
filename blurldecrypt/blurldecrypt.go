@@ -35,6 +35,10 @@ func AesDecrypt(key []byte, bytes []byte) ([]byte, error) {
 func ParseEV(b []byte) (Envelope, error) {
 	var data Envelope
 
+	if len(b) == 0 {
+		return Envelope{}, errors.New("No Envelope Found (likely no encryption)")
+	}
+
 	data.FirstByte = b[0]
 
 	if data.FirstByte != 1 {

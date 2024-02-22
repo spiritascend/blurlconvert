@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -35,21 +36,34 @@ func main() {
 		}
 	}
 
-	mediaurl := GetMediaURL(&blurl)
-
-	decodedEV, err := base64.StdEncoding.DecodeString(blurl.Ev)
-	if err != nil {
-		fmt.Println("Error decoding base64:", err)
-		return
+	var mediaurl string
+	if len(blurl.Playlists) == 1 {
+		mediaurl = blurl.Playlists[0].URL
+	} else {
+		mediaurl = GetMediaURL(&blurl)
 	}
 
-	parsedev, err := blurldecrypt.ParseEV(decodedEV)
+	var key []byte
 
-	key := blurldecrypt.GetEncryptionKey("keys.bin", parsedev.Nonce, parsedev.Key[:])
+	if len(blurl.Ev) > 0 {
+		decodedEV, err := base64.StdEncoding.DecodeString(blurl.Ev)
+		if err != nil {
+			fmt.Println("Error decoding base64:", err)
+			return
+		}
 
-	if key == nil {
-		return
+		parsedev, err := blurldecrypt.ParseEV(decodedEV)
+
+		key = blurldecrypt.GetEncryptionKey("keys.bin", parsedev.Nonce, parsedev.Key[:])
+
+		if key == nil {
+			return
+		}
+
+		fmt.Printf("Key: %02x\n", key)
 	}
+
+	mediaurl, err := RemoveDuplicateUUIDPath(mediaurl)
 
 	mpddata, err := GetPlaylistMetadataByID(mediaurl)
 
@@ -100,11 +114,10 @@ func main() {
 		/*Scuffed but works */
 		if len(mpddata.Period.AdaptationSet) == 2 {
 			Merge("master_video.mp4", "master_audio.mp4", EncodeToBase62(mpddata.Period.AdaptationSet[0].ContentProtection[0].DefaultKID)[:8])
-		} else if len(mpddata.Period.AdaptationSet) == 1 {
-			os.Rename(fmt.Sprintf("master_%s.mp4", mpddata.Period.AdaptationSet[0].ContentType), fmt.Sprintf("%s_master.mp4", EncodeToBase62(mpddata.Period.AdaptationSet[0].ContentProtection[0].DefaultKID)[:8]))
 		}
 
-		/* It deletes all the files in the directory but not the directory because some how it's being used... idk couldn't figure this out, but it's not a huge issue */
+		time.Sleep(1 * time.Second)
+
 		os.RemoveAll("./downloads")
 
 	} else {

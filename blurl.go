@@ -9,7 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
+	"strconv"
 )
 
 type Playlist struct {
@@ -45,26 +45,29 @@ func decompressData(data io.Reader) ([]byte, error) {
 }
 
 func GetMediaURL(blurl *BLURL) string {
-	fmt.Println("Available languages:")
-	for _, playlist := range blurl.Playlists {
-		fmt.Println("- " + playlist.Language)
+	fmt.Println("Available playlists:")
+	for i, playlist := range blurl.Playlists {
+		fmt.Printf("%d: %s\n", i+1, playlist.Language)
 	}
-	fmt.Print("Enter your preferred language: ")
+	fmt.Print("Enter the number of your preferred playlist: ")
 
 	scanner := bufio.NewScanner(os.Stdin)
 	if scanner.Scan() {
-		chosenLanguage := scanner.Text()
-
-		for _, playlist := range blurl.Playlists {
-			if strings.EqualFold(playlist.Language, chosenLanguage) {
-				return playlist.URL
-			}
+		input := scanner.Text()
+		choice, err := strconv.Atoi(input)
+		if err != nil {
+			fmt.Println("Invalid input, please enter a number")
+			return ""
 		}
-		fmt.Println("No playlist found for the selected language")
+		if choice < 1 || choice > len(blurl.Playlists) {
+			fmt.Println("Selected number is out of range")
+			return ""
+		}
+		return blurl.Playlists[choice-1].URL
 	} else {
 		fmt.Println("Failed to read input")
+		return ""
 	}
-	return ""
 }
 
 func parseBLURLFromJSON(inblurl *BLURL, filepath string) error {

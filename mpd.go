@@ -127,6 +127,31 @@ func getBaseURL(fullURL string) string {
 	return fmt.Sprintf("%s://%s%s/", parsedURL.Scheme, parsedURL.Host, basePath)
 }
 
+func RemoveDuplicateUUIDPath(inputURL string) (string, error) {
+	u, err := url.Parse(inputURL)
+	if err != nil {
+		return "", err
+	}
+
+	segments := strings.Split(u.Path, "/")
+
+	seenUUIDs := make(map[string]bool)
+	filteredSegments := []string{}
+
+	for _, segment := range segments {
+		if _, seen := seenUUIDs[segment]; !seen && segment != "" {
+			seenUUIDs[segment] = true
+			filteredSegments = append(filteredSegments, segment)
+		} else if segment == "" || !seenUUIDs[segment] {
+			filteredSegments = append(filteredSegments, segment)
+		}
+	}
+
+	u.Path = strings.Join(filteredSegments, "/")
+
+	return u.String(), nil
+}
+
 func GetPlaylistMetadataByID(url string) (*MPD, error) {
 	res, err := http.Get(url)
 
@@ -165,6 +190,8 @@ func GetPlaylistDuration(mpddata *MPD) float64 {
 
 func HandleDownloadTrack(mediatype string, id string, numberofsegments float64, baseurl string, initmp4 string, adaptation string, key string) error {
 	segmentCount := int(numberofsegments)
+
+	fmt.Println(fmt.Sprintf("%s%s", baseurl, initmp4))
 
 	resp, err := http.Get(fmt.Sprintf("%s%s", baseurl, initmp4))
 	if err != nil {
@@ -276,7 +303,27 @@ func HandleDownloadTrack(mediatype string, id string, numberofsegments float64, 
 		}
 	}
 
-	DecryptPlaylist(id, initmp4, key)
+	if len(key) > 0 {
+		DecryptPlaylist(id, initmp4, key)
+	} else {
+		initfile, err := os.Open(fmt.Sprintf("./downloads/%s", initmp4))
+
+		if err != nil {
+			return err
+		}
+
+		final_master, err := os.Create(fmt.Sprintf("master_%s.mp4", mediatype))
+
+		if err != nil {
+			return err
+		}
+
+		io.Copy(final_master, initfile)
+
+		final_master.Close()
+		initfile.Close()
+
+	}
 
 	return nil
 }
