@@ -13,6 +13,10 @@ import (
 )
 
 func main() {
+	if len(os.Args) <= 2 {
+		return
+	}
+
 	if !strings.HasSuffix(os.Args[1], ".blurl") && !strings.HasSuffix(os.Args[1], ".json") {
 		fmt.Println("input must be a blurl or a json")
 		return
