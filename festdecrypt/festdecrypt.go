@@ -8,36 +8,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 )
 
-func parseJsonFromDecryptedBlob(blob string) string {
-	startidx := 0
-	endidx := 0
+func ParseJsonFromDecryptedBlob(blob string) string {
+	startIdx := strings.Index(blob, "{")
+	endIdx := strings.LastIndex(blob, "}")
 
-	for cidx, c := range blob {
-		if startidx == 0 {
-			if string(c) == "{" {
-				startidx = cidx
-			}
-		}
-		if string(c) == "}" {
-			endidx = cidx + 1
-		}
-	}
-
-	if endidx == 0 || startidx == 0 {
+	if startIdx == -1 || endIdx == -1 || endIdx < startIdx {
 		return blob
 	}
 
-	return blob[startidx:endidx]
+	return blob[startIdx : endIdx+1]
 }
 
 func decryptEnvelope(EVString string, Bearer string) (string, error) {
 	Envelope, err := base64.StdEncoding.DecodeString(EVString)
 	if err != nil {
-		log.Fatal("failed to decode envelope:", err)
+		return "", fmt.Errorf("failed to decode envelope: %s", err)
 	}
 
 	if Envelope[0] != 1 {
@@ -53,9 +41,7 @@ func decryptEnvelope(EVString string, Bearer string) (string, error) {
 		subkey := []byte(Bearer[len(Bearer)-fourthbyteofEnv:])
 
 		if len(subkey) == fourthbyteofEnv {
-			TrailBytes := []byte(Envelope[len(Envelope)-(0x10-fourthbyteofEnv):])
-
-			finalkey := append(TrailBytes, subkey...)
+			finalkey := append([]byte(Envelope[len(Envelope)-(0x10-fourthbyteofEnv):]), subkey...)
 
 			startIndex := fourthbyteofEnv + len(Envelope) - 0x10
 			endIndex := startIndex + (0x10 - fourthbyteofEnv)
@@ -76,11 +62,9 @@ func decryptEnvelope(EVString string, Bearer string) (string, error) {
 					return "", err
 				}
 
-				mode := cipher.NewCBCDecrypter(block, IV)
+				cipher.NewCBCDecrypter(block, IV).CryptBlocks(encryptedIntArray, encryptedIntArray)
 
-				mode.CryptBlocks(encryptedIntArray, encryptedIntArray)
-
-				return parseJsonFromDecryptedBlob(string(encryptedIntArray)), nil
+				return ParseJsonFromDecryptedBlob(string(encryptedIntArray)), nil
 			}
 
 		} else {
@@ -89,6 +73,7 @@ func decryptEnvelope(EVString string, Bearer string) (string, error) {
 	}
 
 	return "", nil
+
 }
 
 type CDMJson struct {
